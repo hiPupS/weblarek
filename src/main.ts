@@ -100,5 +100,7 @@ let firstOrder: IOrder = {
   ],
 };
 
-console.log(newApiService.getProducts());
+
+const products = await newApiService.getProducts();
+console.log(products);
 console.log(newApiService.postOrder(firstOrder).catch(err => console.log(err)));

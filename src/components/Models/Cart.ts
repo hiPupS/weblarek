@@ -1,28 +1,28 @@
 import { IProduct } from "../../types/index.ts";
 
-export class Cart {
-  private addedProduct: IProduct[] = [];
+export class Cart { 
+  private addedProducts: IProduct[] = [];
 
   getItems(): IProduct[] {
-    return this.addedProduct;
+    return this.addedProducts;
   }
 
   addToCart(addedProduct: IProduct): void {
-    this.addedProduct.push(addedProduct);
+    this.addedProducts.push(addedProduct);
   }
 
   removeFromCart(productID: string): void {
-    this.addedProduct = this.addedProduct.filter(
+    this.addedProducts = this.addedProducts.filter(
       (product) => product.id !== productID
     );
   }
 
   removeAllItems(): void {
-    this.addedProduct = [];
+    this.addedProducts = [];
   }
 
   getTotalCost(): number {
-    return this.addedProduct.reduce(
+    return this.addedProducts.reduce(
       (total, product) =>
         typeof product.price === "number" ? total + product.price : total,
       0
@@ -30,11 +30,11 @@ export class Cart {
   }
 
   getAmountOfItems(): number {
-    return this.addedProduct.length;
+    return this.addedProducts.length;
   }
 
   isAvailable(productID: string): boolean {
-    return this.addedProduct.some((product) => product.id === productID);
+    return this.addedProducts.some((product) => product.id === productID);
   }
 }
 
