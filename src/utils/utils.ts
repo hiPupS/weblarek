@@ -1,3 +1,5 @@
+import {IErrorApiResponse} from '../types';
+
 export function pascalToKebab(value: string): string {
     return value.replace(/([a-z0–9])([A-Z])/g, "$1-$2").toLowerCase();
 }
@@ -135,4 +137,10 @@ export function createElement<
         }
     }
     return element;
+}
+
+export function isErrorApiResponse(e: unknown): e is IErrorApiResponse {
+    return typeof e === 'object'
+        && e !== null
+        && 'error' in e;
 }

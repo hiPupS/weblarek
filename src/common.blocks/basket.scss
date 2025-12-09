@@ -12,13 +12,13 @@
     flex-grow: 1;
     overflow-y: auto;
   }
-  
+
   &__list:not(:has(> *))::before {
     content: 'Корзина пуста';
     opacity: 0.3;
     display: block;
     text-align: left;
-    font-style: regular;
+    font-style: normal;
     font-weight: 400;
   }
 

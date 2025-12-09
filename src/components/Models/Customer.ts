@@ -1,58 +1,71 @@
-import { ICustomer } from "../../types/index.ts";
+import {IBuyer, TBuyerValidityMessages, TPayment} from '../../types';
+import {eventNames} from '../../utils/constants.ts';
+import {IEvents} from '../base/Events.ts';
 
 export class Customer {
-  private customerInfo: ICustomer = {
-    payment: null,
-    email: null,
-    phone: null,
-    address: null,
-  };
+    private payment: TPayment = '';
+    private address: string = '';
+    private phone: string = '';
+    private email: string = '';
 
-  setCustomerInfo(customerInfo: Partial<ICustomer>): void {
-    if (customerInfo.payment !== undefined) {
-      this.customerInfo.payment = customerInfo.payment;
-    }
-    if (customerInfo.email !== undefined) {
-      this.customerInfo.email = customerInfo.email;
-    }
-    if (customerInfo.address !== undefined) {
-      this.customerInfo.address = customerInfo.address;
-    }
-    if (customerInfo.phone !== undefined) {
-      this.customerInfo.phone = customerInfo.phone;
-    }
-  }
-
-  getCustomerInfo(): ICustomer {
-    return this.customerInfo;
-  }
-
-  eraseCustomerInfo(): void {
-    this.customerInfo = {
-      payment: null,
-      email: null,
-      phone: null,
-      address: null,
-    };
-  }
-
-  isCorrect(): { [key in keyof ICustomer]?: string } {
-    let errors: { [key in keyof ICustomer]?: string } = {};
-    if (!this.customerInfo.payment) {
-      errors.payment = "Не выбран тип оплаты";
-    }
-    if (!this.customerInfo.email) {
-      errors.email = "Не указан email-адрес";
-    }
-    if (!this.customerInfo.address) {
-      errors.address = "Не указан адрес покупателя";
-    }
-    if (!this.customerInfo.phone) {
-      errors.phone = "Не указан номер телефона";
+    constructor(protected readonly events: IEvents) {
     }
 
-    return errors;
-  }
+    setPayment(payment: TPayment): void {
+        this.payment = payment;
+        this.events.emit(eventNames.CUSTOMER_SET_PAYMENT);
+    }
+
+    setAddress(address: string): void {
+        this.address = address;
+        this.events.emit(eventNames.CUSTOMER_SET_ADDRESS);
+    }
+
+    setPhone(phone: string): void {
+        this.phone = phone;
+        this.events.emit(eventNames.CUSTOMER_SET_PHONE);
+    }
+
+    setEmail(email: string): void {
+        this.email = email;
+        this.events.emit(eventNames.CUSTOMER_SET_EMAIL);
+    }
+
+    getData(): IBuyer {
+        return {
+            payment: this.payment,
+            address: this.address,
+            phone: this.phone,
+            email: this.email,
+        };
+    }
+
+    clear(): void {
+        this.payment = '';
+        this.address = '';
+        this.phone = '';
+        this.email = '';
+    }
+
+    checkValidity(): TBuyerValidityMessages {
+        const errors: TBuyerValidityMessages = {};
+
+        if (!this.payment) {
+            errors.payment = 'Выберите способ оплаты';
+        }
+
+        if (!this.address.trim()) {
+            errors.address = 'Необходимо указать адрес';
+        }
+
+        if (!this.phone.trim()) {
+            errors.phone = 'Необходимо указать телефон';
+        }
+
+        if (!this.email.trim()) {
+            errors.email = 'Необходимо указать email';
+        }
+
+        return errors;
+    }
 }
-
-export default Customer;
