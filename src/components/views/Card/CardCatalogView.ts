@@ -1,7 +1,6 @@
-import {IProduct, TCategoryNames} from '../../../types';
-import {CardView} from './CardView.ts';
-import {ensureElement} from '../../../utils/utils.ts';
-import {CDN_URL} from '../../../utils/constants.ts';
+import { IProduct } from '../../../types';
+import { CardView } from './CardView.ts';
+import { ensureElement } from '../../../utils/utils.ts';
 
 type TCardCatalogViewData = Pick<IProduct, 'image' | 'category'>;
 type TCardCatalogViewActions = {
@@ -18,22 +17,12 @@ export class CardCatalogView extends CardView<TCardCatalogViewData> {
     ) {
         super(container);
 
+        // Подключаем DOM элементы — теперь родительские сеттеры могут работать
         this.categoryElem = ensureElement<HTMLElement>('.card__category', this.container);
         this.imageElem = ensureElement<HTMLImageElement>('.card__image', this.container);
 
         if (this.actions?.onClick) {
             this.container.addEventListener('click', this.actions.onClick);
         }
-    }
-
-    set category(category: TCategoryNames) {
-        const categoryClassModifier = CardView.getCategoryClassByCategoryName(category);
-
-        this.categoryElem.textContent = category;
-        this.categoryElem.className = `card__category ${categoryClassModifier}`;
-    }
-
-    set image(imageSrc: string) {
-        this.setImage(this.imageElem, CDN_URL + imageSrc);
     }
 }

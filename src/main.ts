@@ -48,10 +48,7 @@ const orderSuccessView = new OrderSuccessView(cloneTemplate<HTMLElement>(success
 
 eventEmitter.on(eventNames.CATALOG_SET_ITEMS, () => {
     const catalogCards: HTMLElement[] = catalogModel.getItems().map(renderCardCatalogView);
-
-    galleryView.render({
-        items: catalogCards,
-    });
+    galleryView.render({ items: catalogCards });
 });
 
 eventEmitter.on<IProduct>(eventNames.CARD_CATALOG_SELECTED, (item) => {
@@ -59,11 +56,8 @@ eventEmitter.on<IProduct>(eventNames.CARD_CATALOG_SELECTED, (item) => {
 });
 
 eventEmitter.on(eventNames.CATALOG_SET_CURRENT_ITEM, () => {
-    const currentItem: IProduct | null = catalogModel.getCurrentItem();
-
-    if (!currentItem) {
-        return;
-    }
+    const currentItem = catalogModel.getCurrentItem();
+    if (!currentItem) return;
 
     modalView.render({
         content: renderCardPreviewView(currentItem),
@@ -99,6 +93,9 @@ eventEmitter.on(eventNames.BASKET_CLEAR, () => {
         renderBasketView();
     });
 });
+
+eventEmitter.on(eventNames.BASKET_ADD_ITEM, () => renderHeaderView());
+eventEmitter.on(eventNames.BASKET_DELETE_ITEM, () => renderHeaderView());
 
 eventEmitter.on<Pick<IBuyer, 'payment'>>(eventNames.ORDER_FORM_SET_PAYMENT, ({payment}) => {
     customerModel.setPayment(payment);
@@ -155,11 +152,8 @@ eventEmitter.on(eventNames.CONTACTS_FORM_SUBMIT, async () => {
             content: renderOrderSuccessView(response),
         });
     } catch (e: unknown) {
-        if (isErrorApiResponse(e)) {
-            console.error(e.error);
-        } else {
-            console.error(e);
-        }
+        if (isErrorApiResponse(e)) console.error(e.error);
+        else console.error(e);
     }
 });
 
@@ -167,12 +161,15 @@ try {
     const products = await productApi.getProducts();
     catalogModel.setItems(products.items);
 } catch (e: unknown) {
-    if (isErrorApiResponse(e)) {
-        console.error(e.error);
-    } else {
-        console.error(e);
-    }
+    if (isErrorApiResponse(e)) console.error(e.error);
+    else console.error(e);
 }
+
+renderHeaderView();
+
+// =============================
+//         FUNCTIONS
+// =============================
 
 function renderHeaderView(): HTMLElement {
     return headerView.render({
@@ -193,17 +190,14 @@ function renderCardBasketView(item: IProduct, index: number): HTMLElement {
     const cardBasketView = new CardBasketView(
         cloneTemplate(cardBasketTemplate),
         {
-            onClick: () => {
-                eventEmitter.emit(eventNames.CARD_BASKET_DELETE_ITEM, item);
-            },
+            onClick: () => eventEmitter.emit(eventNames.CARD_BASKET_DELETE_ITEM, item),
         },
     );
 
-    return cardBasketView.render(
-        {...item, index: index + 1},
-    );
+    return cardBasketView.render({ ...item, index: index + 1 });
 }
 
+// ИСПРАВЛЕНЫЙ БЛОК ПО ОШИЬКЕ
 function renderCardPreviewView(item: IProduct): HTMLElement {
     const cardPreviewView = new CardPreviewView(
         cloneTemplate<HTMLTemplateElement>(cardPreviewTemplate),
@@ -211,11 +205,16 @@ function renderCardPreviewView(item: IProduct): HTMLElement {
             onClick: () => {
                 if (!basketModel.hasItem(item.id)) {
                     basketModel.addItem(item);
+                    eventEmitter.emit(eventNames.BASKET_ADD_ITEM, item);
                 } else {
                     basketModel.deleteItem(item);
+                    eventEmitter.emit(eventNames.BASKET_DELETE_ITEM, item);
                 }
 
-                modalView.close();
+                // ❗ Не закрываем окно, а перерисовываем
+                modalView.render({
+                    content: renderCardPreviewView(item),
+                });
             },
         },
     );
@@ -231,9 +230,7 @@ function renderCardCatalogView(item: IProduct): HTMLElement {
     const cardCatalogView = new CardCatalogView(
         cloneTemplate<HTMLTemplateElement>(cardCatalogTemplate),
         {
-            onClick: () => {
-                eventEmitter.emit(eventNames.CARD_CATALOG_SELECTED, item);
-            },
+            onClick: () => eventEmitter.emit(eventNames.CARD_CATALOG_SELECTED, item),
         },
     );
 
@@ -241,15 +238,9 @@ function renderCardCatalogView(item: IProduct): HTMLElement {
 }
 
 function renderOrderFormView(): HTMLElement {
-    const {
-        payment,
-        address,
-    } = customerModel.getData();
-    const {
-        payment: paymentError,
-        address: addressError,
-    } = customerModel.checkValidity();
-    const error: string = paymentError || addressError || '';
+    const {payment, address} = customerModel.getData();
+    const {payment: pErr, address: aErr} = customerModel.checkValidity();
+    const error = pErr || aErr || '';
 
     return orderFormView.render({
         payment,
@@ -259,15 +250,9 @@ function renderOrderFormView(): HTMLElement {
 }
 
 function renderContactsFormView(): HTMLElement {
-    const {
-        email,
-        phone,
-    } = customerModel.getData();
-    const {
-        email: emailError,
-        phone: phoneError,
-    } = customerModel.checkValidity();
-    const error: string = emailError || phoneError || '';
+    const {email, phone} = customerModel.getData();
+    const {email: eErr, phone: pErr} = customerModel.checkValidity();
+    const error = eErr || pErr || '';
 
     return contactsFormView.render({
         email,
@@ -277,9 +262,7 @@ function renderContactsFormView(): HTMLElement {
 }
 
 function renderOrderSuccessView({total}: IOrderApiResponse) {
-    return orderSuccessView.render({
-        total,
-    });
+    return orderSuccessView.render({ total });
 }
 
 function getBuyProductButtonText({id, price}: IProduct): string {
@@ -288,7 +271,6 @@ function getBuyProductButtonText({id, price}: IProduct): string {
             ? 'Удалить из корзины'
             : 'В корзину';
     }
-
     return 'Недоступно';
 }
 

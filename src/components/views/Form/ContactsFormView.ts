@@ -1,8 +1,8 @@
-import {FormView} from './FormView.ts';
-import {IBuyer} from '../../../types';
-import {ensureElement} from '../../../utils/utils.ts';
-import {IEvents} from '../../base/Events.ts';
-import {eventNames} from '../../../utils/constants.ts';
+import { FormView } from './FormView.ts';
+import { IBuyer } from '../../../types';
+import { ensureElement } from '../../../utils/utils.ts';
+import { IEvents } from '../../base/Events.ts';
+import { eventNames } from '../../../utils/constants.ts';
 
 type TContactsFormViewData = Pick<IBuyer, 'email' | 'phone'>;
 
@@ -30,11 +30,6 @@ export class ContactsFormView extends FormView<TContactsFormViewData> {
                 phone: this.phoneInputElem.value,
             });
         });
-
-        this.container.addEventListener('submit', (evt: SubmitEvent) => {
-            evt.preventDefault();
-            this.events.emit(eventNames.CONTACTS_FORM_SUBMIT);
-        });
     }
 
     set email(email: string) {
@@ -43,5 +38,9 @@ export class ContactsFormView extends FormView<TContactsFormViewData> {
 
     set phone(phone: string) {
         this.phoneInputElem.value = phone;
+    }
+
+    protected onSubmit(): void {
+        this.events.emit(eventNames.CONTACTS_FORM_SUBMIT);
     }
 }
