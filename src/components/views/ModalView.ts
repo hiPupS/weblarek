@@ -9,6 +9,9 @@ export class ModalView extends Component<IModalViewData> {
     protected readonly modalContentElem: HTMLElement;
     protected readonly closeBtnElem: HTMLButtonElement;
 
+    // === Добавляем свойство ===
+    public isOpened: boolean = false;
+
     constructor(protected readonly container: HTMLElement) {
         super(container);
 
@@ -28,7 +31,6 @@ export class ModalView extends Component<IModalViewData> {
         }
     };
 
-    // === Обработчик Escape, как в замечании ===
     protected _handleEscape = (evt: KeyboardEvent) => {
         if (evt.key === 'Escape') {
             this.close();
@@ -41,16 +43,14 @@ export class ModalView extends Component<IModalViewData> {
     }
 
     protected open() {
+        this.isOpened = true; // корректно
         this.container.classList.add('modal_active');
-
-        // Навешиваем обработчик Escape
         document.addEventListener('keydown', this._handleEscape);
     }
 
     public close() {
+        this.isOpened = false; // корректно
         this.container.classList.remove('modal_active');
-
-        // Удаляем обработчик Escape
         document.removeEventListener('keydown', this._handleEscape);
     }
 }

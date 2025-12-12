@@ -35,11 +35,6 @@ export class OrderFormView extends FormView<TOrderFormViewData> {
                 address: this.addressInputElem.value,
             });
         });
-
-        this.container.addEventListener('submit', (evt: SubmitEvent) => {
-            evt.preventDefault();
-            this.events.emit(eventNames.ORDER_FORM_SUBMIT);
-        });
     }
 
     set payment(payment: TPayment) {
@@ -51,5 +46,9 @@ export class OrderFormView extends FormView<TOrderFormViewData> {
 
     set address(address: string) {
         this.addressInputElem.value = address;
+    }
+
+    protected onSubmit(): void {
+        this.events.emit(eventNames.ORDER_FORM_SUBMIT);
     }
 }

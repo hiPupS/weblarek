@@ -19,6 +19,19 @@ import {OrderFormView} from './components/views/Form/OrderFormView.ts';
 import {ContactsFormView} from './components/views/Form/ContactsFormView.ts';
 import {OrderSuccessView} from './components/views/OrderSuccessView.ts';
 
+ModalView.prototype.isOpened = false;
+const originalOpen = ModalView.prototype.open;
+ModalView.prototype.open = function (...args) {
+    this.isOpened = true;
+    return originalOpen.apply(this, args);
+};
+
+const originalClose = ModalView.prototype.close;
+ModalView.prototype.close = function (...args) {
+    this.isOpened = false;
+    return originalClose.apply(this, args);
+};
+
 const productApi = new ProductApi(new Api(API_URL));
 const eventEmitter = new EventEmitter();
 
@@ -45,6 +58,7 @@ const basketView = new BasketView(cloneTemplate(basketTemplate), eventEmitter);
 const orderFormView = new OrderFormView(cloneTemplate<HTMLFormElement>(orderFormTemplate), eventEmitter);
 const contactsFormView = new ContactsFormView(cloneTemplate<HTMLFormElement>(contactsFormTemplate), eventEmitter);
 const orderSuccessView = new OrderSuccessView(cloneTemplate<HTMLElement>(successTemplate), eventEmitter);
+
 
 eventEmitter.on(eventNames.CATALOG_SET_ITEMS, () => {
     const catalogCards: HTMLElement[] = catalogModel.getItems().map(renderCardCatalogView);
@@ -84,18 +98,20 @@ eventEmitter.on(eventNames.BASKET_CLEAR, () => {
     renderHeaderView();
 });
 
-[
-    eventNames.BASKET_ADD_ITEM,
-    eventNames.BASKET_DELETE_ITEM,
-].forEach((eventName) => {
+//      ИСПРАВЛЕННЫЕ ОБРАБОТЧИКИ
+
+[eventNames.BASKET_ADD_ITEM, eventNames.BASKET_DELETE_ITEM].forEach((eventName) => {
     eventEmitter.on(eventName, () => {
         renderHeaderView();
-        renderBasketView();
+
+        // Если корзина сейчас открыта — перерисовываем DOM
+        if (modalView.isOpened) {
+            modalView.render({
+                content: renderBasketView(),
+            });
+        }
     });
 });
-
-eventEmitter.on(eventNames.BASKET_ADD_ITEM, () => renderHeaderView());
-eventEmitter.on(eventNames.BASKET_DELETE_ITEM, () => renderHeaderView());
 
 eventEmitter.on<Pick<IBuyer, 'payment'>>(eventNames.ORDER_FORM_SET_PAYMENT, ({payment}) => {
     customerModel.setPayment(payment);
@@ -167,10 +183,6 @@ try {
 
 renderHeaderView();
 
-// =============================
-//         FUNCTIONS
-// =============================
-
 function renderHeaderView(): HTMLElement {
     return headerView.render({
         count: basketModel.getTotalItems(),
@@ -197,7 +209,6 @@ function renderCardBasketView(item: IProduct, index: number): HTMLElement {
     return cardBasketView.render({ ...item, index: index + 1 });
 }
 
-// ИСПРАВЛЕНЫЙ БЛОК ПО ОШИЬКЕ
 function renderCardPreviewView(item: IProduct): HTMLElement {
     const cardPreviewView = new CardPreviewView(
         cloneTemplate<HTMLTemplateElement>(cardPreviewTemplate),
@@ -211,7 +222,6 @@ function renderCardPreviewView(item: IProduct): HTMLElement {
                     eventEmitter.emit(eventNames.BASKET_DELETE_ITEM, item);
                 }
 
-                // ❗ Не закрываем окно, а перерисовываем
                 modalView.render({
                     content: renderCardPreviewView(item),
                 });
