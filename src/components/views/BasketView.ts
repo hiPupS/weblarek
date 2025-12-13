@@ -6,6 +6,7 @@ import {eventNames} from '../../utils/constants.ts';
 type TBasketViewData = {
     items: HTMLElement[];
     total: number;
+    valid: boolean;
 };
 
 export class BasketView extends Component<TBasketViewData> {

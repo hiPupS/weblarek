@@ -8,9 +8,8 @@ interface IModalViewData {
 export class ModalView extends Component<IModalViewData> {
     protected readonly modalContentElem: HTMLElement;
     protected readonly closeBtnElem: HTMLButtonElement;
-
-    // === Добавляем свойство ===
-    public isOpened: boolean = false;
+    
+    public isOpened = false;
 
     constructor(protected readonly container: HTMLElement) {
         super(container);
@@ -23,10 +22,7 @@ export class ModalView extends Component<IModalViewData> {
     }
 
     protected modalClickHandler = (evt: MouseEvent) => {
-        const target = evt.target as HTMLElement;
-        const currentTarget = evt.currentTarget as HTMLElement;
-
-        if (target === currentTarget) {
+        if (evt.target === evt.currentTarget) {
             this.close();
         }
     };
@@ -43,13 +39,13 @@ export class ModalView extends Component<IModalViewData> {
     }
 
     protected open() {
-        this.isOpened = true; // корректно
+        this.isOpened = true;
         this.container.classList.add('modal_active');
         document.addEventListener('keydown', this._handleEscape);
     }
 
     public close() {
-        this.isOpened = false; // корректно
+        this.isOpened = false;
         this.container.classList.remove('modal_active');
         document.removeEventListener('keydown', this._handleEscape);
     }

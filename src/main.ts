@@ -1,37 +1,25 @@
 import './scss/styles.scss';
-import {Catalog} from './components/models/Catalog.ts';
-import {Basket} from './components/models/Basket.ts';
-import {Customer} from './components/models/Customer.ts';
-import {ProductApi} from './components/api/ProtuctApi.ts';
-import {Api} from './components/base/Api.ts';
-import {API_URL, eventNames} from './utils/constants.ts';
-import {cloneTemplate, ensureElement, isErrorApiResponse} from './utils/utils.ts';
-import {HeaderView} from './components/views/HeaderView.ts';
-import {EventEmitter} from './components/base/Events.ts';
-import {GalleryView} from './components/views/GalleryView.ts';
-import {CardCatalogView} from './components/views/Card/CardCatalogView.ts';
-import {IBuyer, IOrderApiResponse, IProduct} from './types';
-import {ModalView} from './components/views/ModalView.ts';
-import {CardPreviewView} from './components/views/Card/CardPreviewView.ts';
-import {BasketView} from './components/views/BasketView.ts';
-import {CardBasketView} from './components/views/Card/CardBasketView.ts';
-import {OrderFormView} from './components/views/Form/OrderFormView.ts';
-import {ContactsFormView} from './components/views/Form/ContactsFormView.ts';
-import {OrderSuccessView} from './components/views/OrderSuccessView.ts';
+import { Catalog } from './components/models/Catalog.ts';
+import { Basket } from './components/models/Basket.ts';
+import { Customer } from './components/models/Customer.ts';
+import { ProductApi } from './components/api/ProtuctApi.ts';
+import { Api } from './components/base/Api.ts';
+import { API_URL, eventNames } from './utils/constants.ts';
+import { cloneTemplate, ensureElement, isErrorApiResponse } from './utils/utils.ts';
+import { HeaderView } from './components/views/HeaderView.ts';
+import { EventEmitter } from './components/base/Events.ts';
+import { GalleryView } from './components/views/GalleryView.ts';
+import { CardCatalogView } from './components/views/Card/CardCatalogView.ts';
+import { IBuyer, IOrderApiResponse, IProduct } from './types';
+import { ModalView } from './components/views/ModalView.ts';
+import { CardPreviewView } from './components/views/Card/CardPreviewView.ts';
+import { BasketView } from './components/views/BasketView.ts';
+import { CardBasketView } from './components/views/Card/CardBasketView.ts';
+import { OrderFormView } from './components/views/Form/OrderFormView.ts';
+import { ContactsFormView } from './components/views/Form/ContactsFormView.ts';
+import { OrderSuccessView } from './components/views/OrderSuccessView.ts';
 
-ModalView.prototype.isOpened = false;
-const originalOpen = ModalView.prototype.open;
-ModalView.prototype.open = function (...args) {
-    this.isOpened = true;
-    return originalOpen.apply(this, args);
-};
-
-const originalClose = ModalView.prototype.close;
-ModalView.prototype.close = function (...args) {
-    this.isOpened = false;
-    return originalClose.apply(this, args);
-};
-
+// --- создаем экземпляры API и моделей ---
 const productApi = new ProductApi(new Api(API_URL));
 const eventEmitter = new EventEmitter();
 
@@ -39,6 +27,7 @@ const catalogModel = new Catalog(eventEmitter);
 const basketModel = new Basket(eventEmitter);
 const customerModel = new Customer(eventEmitter);
 
+// --- DOM ---
 const headerElem = ensureElement<HTMLElement>('.header');
 const galleryElem = ensureElement<HTMLElement>('.gallery');
 const modalElem = ensureElement<HTMLTemplateElement>('#modal-container');
@@ -51,18 +40,29 @@ const orderFormTemplate = ensureElement<HTMLTemplateElement>('#order');
 const contactsFormTemplate = ensureElement<HTMLTemplateElement>('#contacts');
 const successTemplate = ensureElement<HTMLTemplateElement>('#success');
 
+// --- создаем view ---
 const headerView = new HeaderView(headerElem, eventEmitter);
 const galleryView = new GalleryView(galleryElem);
-const modalView = new ModalView(modalElem);
+const modalView = new ModalView(modalElem); // теперь без isOpened на прототипе
 const basketView = new BasketView(cloneTemplate(basketTemplate), eventEmitter);
 const orderFormView = new OrderFormView(cloneTemplate<HTMLFormElement>(orderFormTemplate), eventEmitter);
 const contactsFormView = new ContactsFormView(cloneTemplate<HTMLFormElement>(contactsFormTemplate), eventEmitter);
 const orderSuccessView = new OrderSuccessView(cloneTemplate<HTMLElement>(successTemplate), eventEmitter);
 
+// --- локальное свойство для отслеживания состояния модалки ---
+let isModalOpened = false;
 
+// обертки для модалки, чтобы корректно отслеживать открытие/закрытие
+const openModal = (content: HTMLElement) => {
+    isModalOpened = true;
+    modalView.render({ content });
+};
+
+// --- события ---
 eventEmitter.on(eventNames.CATALOG_SET_ITEMS, () => {
-    const catalogCards: HTMLElement[] = catalogModel.getItems().map(renderCardCatalogView);
-    galleryView.render({ items: catalogCards });
+    galleryView.render({
+        items: catalogModel.getItems().map(renderCardCatalogView),
+    });
 });
 
 eventEmitter.on<IProduct>(eventNames.CARD_CATALOG_SELECTED, (item) => {
@@ -70,18 +70,14 @@ eventEmitter.on<IProduct>(eventNames.CARD_CATALOG_SELECTED, (item) => {
 });
 
 eventEmitter.on(eventNames.CATALOG_SET_CURRENT_ITEM, () => {
-    const currentItem = catalogModel.getCurrentItem();
-    if (!currentItem) return;
+    const item = catalogModel.getCurrentItem();
+    if (!item) return;
 
-    modalView.render({
-        content: renderCardPreviewView(currentItem),
-    });
+    openModal(renderCardPreviewView(item));
 });
 
 eventEmitter.on(eventNames.BASKET_OPEN, () => {
-    modalView.render({
-        content: renderBasketView(),
-    });
+    openModal(renderBasketView());
 });
 
 eventEmitter.on<IProduct>(eventNames.CARD_BASKET_DELETE_ITEM, (item) => {
@@ -89,23 +85,14 @@ eventEmitter.on<IProduct>(eventNames.CARD_BASKET_DELETE_ITEM, (item) => {
 });
 
 eventEmitter.on(eventNames.BASKET_CHECKOUT, () => {
-    modalView.render({
-        content: renderOrderFormView(),
-    });
+    openModal(renderOrderFormView());
 });
-
-eventEmitter.on(eventNames.BASKET_CLEAR, () => {
-    renderHeaderView();
-});
-
-//      ИСПРАВЛЕННЫЕ ОБРАБОТЧИКИ
 
 [eventNames.BASKET_ADD_ITEM, eventNames.BASKET_DELETE_ITEM].forEach((eventName) => {
     eventEmitter.on(eventName, () => {
         renderHeaderView();
 
-        // Если корзина сейчас открыта — перерисовываем DOM
-        if (modalView.isOpened) {
+        if (isModalOpened) {
             modalView.render({
                 content: renderBasketView(),
             });
@@ -113,11 +100,11 @@ eventEmitter.on(eventNames.BASKET_CLEAR, () => {
     });
 });
 
-eventEmitter.on<Pick<IBuyer, 'payment'>>(eventNames.ORDER_FORM_SET_PAYMENT, ({payment}) => {
+eventEmitter.on<Pick<IBuyer, 'payment'>>(eventNames.ORDER_FORM_SET_PAYMENT, ({ payment }) => {
     customerModel.setPayment(payment);
 });
 
-eventEmitter.on<Pick<IBuyer, 'address'>>(eventNames.ORDER_FORM_SET_ADDRESS, ({address}) => {
+eventEmitter.on<Pick<IBuyer, 'address'>>(eventNames.ORDER_FORM_SET_ADDRESS, ({ address }) => {
     customerModel.setAddress(address);
 });
 
@@ -129,16 +116,14 @@ eventEmitter.on<Pick<IBuyer, 'address'>>(eventNames.ORDER_FORM_SET_ADDRESS, ({ad
 });
 
 eventEmitter.on(eventNames.ORDER_FORM_SUBMIT, () => {
-    modalView.render({
-        content: renderContactsFormView(),
-    });
+    openModal(renderContactsFormView());
 });
 
-eventEmitter.on<Pick<IBuyer, 'email'>>(eventNames.CONTACTS_FORM_SET_EMAIL, ({email}) => {
+eventEmitter.on<Pick<IBuyer, 'email'>>(eventNames.CONTACTS_FORM_SET_EMAIL, ({ email }) => {
     customerModel.setEmail(email);
 });
 
-eventEmitter.on<Pick<IBuyer, 'phone'>>(eventNames.CONTACTS_FORM_SET_PHONE, ({phone}) => {
+eventEmitter.on<Pick<IBuyer, 'phone'>>(eventNames.CONTACTS_FORM_SET_PHONE, ({ phone }) => {
     customerModel.setPhone(phone);
 });
 
@@ -149,40 +134,35 @@ eventEmitter.on<Pick<IBuyer, 'phone'>>(eventNames.CONTACTS_FORM_SET_PHONE, ({pho
     eventEmitter.on(eventName, () => renderContactsFormView());
 });
 
-eventEmitter.on(eventNames.ORDER_SUCCESS_CLICK_CLOSE, () => {
-    modalView.close();
-});
-
 eventEmitter.on(eventNames.CONTACTS_FORM_SUBMIT, async () => {
     try {
         const response = await productApi.order({
             ...customerModel.getData(),
             total: basketModel.getTotalPrice(),
-            items: basketModel.getItems().map(({id}) => id),
+            items: basketModel.getItems().map(({ id }) => id),
         });
 
         basketModel.clear();
         customerModel.clear();
 
-        modalView.render({
-            content: renderOrderSuccessView(response),
-        });
-    } catch (e: unknown) {
+        openModal(renderOrderSuccessView(response));
+    } catch (e) {
         if (isErrorApiResponse(e)) console.error(e.error);
         else console.error(e);
     }
 });
 
+// --- загрузка товаров ---
 try {
     const products = await productApi.getProducts();
     catalogModel.setItems(products.items);
-} catch (e: unknown) {
+} catch (e) {
     if (isErrorApiResponse(e)) console.error(e.error);
-    else console.error(e);
 }
 
 renderHeaderView();
 
+// --- рендер функции ---
 function renderHeaderView(): HTMLElement {
     return headerView.render({
         count: basketModel.getTotalItems(),
@@ -190,100 +170,90 @@ function renderHeaderView(): HTMLElement {
 }
 
 function renderBasketView(): HTMLElement {
-    const basketItems = basketModel.getItems().map(renderCardBasketView);
+    const items = basketModel.getItems().map(renderCardBasketView);
 
     return basketView.render({
-        items: basketItems,
+        items,
         total: basketModel.getTotalPrice(),
+        valid: items.length > 0,
     });
 }
 
 function renderCardBasketView(item: IProduct, index: number): HTMLElement {
-    const cardBasketView = new CardBasketView(
+    const view = new CardBasketView(
         cloneTemplate(cardBasketTemplate),
         {
             onClick: () => eventEmitter.emit(eventNames.CARD_BASKET_DELETE_ITEM, item),
-        },
+        }
     );
 
-    return cardBasketView.render({ ...item, index: index + 1 });
+    return view.render({ ...item, index: index + 1 });
 }
 
 function renderCardPreviewView(item: IProduct): HTMLElement {
-    const cardPreviewView = new CardPreviewView(
-        cloneTemplate<HTMLTemplateElement>(cardPreviewTemplate),
+    const view = new CardPreviewView(
+        cloneTemplate(cardPreviewTemplate),
         {
             onClick: () => {
-                if (!basketModel.hasItem(item.id)) {
-                    basketModel.addItem(item);
-                    eventEmitter.emit(eventNames.BASKET_ADD_ITEM, item);
-                } else {
+                if (basketModel.hasItem(item.id)) {
                     basketModel.deleteItem(item);
                     eventEmitter.emit(eventNames.BASKET_DELETE_ITEM, item);
+                } else {
+                    basketModel.addItem(item);
+                    eventEmitter.emit(eventNames.BASKET_ADD_ITEM, item);
                 }
 
                 modalView.render({
                     content: renderCardPreviewView(item),
                 });
             },
-        },
+        }
     );
 
-    return cardPreviewView.render({
+    return view.render({
         ...item,
-        canBuy: canBuyProduct(item),
-        buttonText: getBuyProductButtonText(item),
+        canBuy: !!item.price,
+        buttonText: item.price
+            ? basketModel.hasItem(item.id)
+                ? 'Удалить из корзины'
+                : 'В корзину'
+            : 'Недоступно',
     });
 }
 
 function renderCardCatalogView(item: IProduct): HTMLElement {
-    const cardCatalogView = new CardCatalogView(
-        cloneTemplate<HTMLTemplateElement>(cardCatalogTemplate),
+    const view = new CardCatalogView(
+        cloneTemplate(cardCatalogTemplate),
         {
             onClick: () => eventEmitter.emit(eventNames.CARD_CATALOG_SELECTED, item),
-        },
+        }
     );
 
-    return cardCatalogView.render(item);
+    return view.render(item);
 }
 
 function renderOrderFormView(): HTMLElement {
-    const {payment, address} = customerModel.getData();
-    const {payment: pErr, address: aErr} = customerModel.checkValidity();
-    const error = pErr || aErr || '';
+    const { payment, address } = customerModel.getData();
+    const { payment: pErr, address: aErr } = customerModel.checkValidity();
 
     return orderFormView.render({
         payment,
         address,
-        error,
+        error: pErr || aErr || '',
     });
 }
 
 function renderContactsFormView(): HTMLElement {
-    const {email, phone} = customerModel.getData();
-    const {email: eErr, phone: pErr} = customerModel.checkValidity();
-    const error = eErr || pErr || '';
+    const { email, phone } = customerModel.getData();
+    const { email: eErr, phone: pErr } = customerModel.checkValidity();
 
     return contactsFormView.render({
         email,
         phone,
-        error,
+        error: eErr || pErr || '',
     });
 }
 
-function renderOrderSuccessView({total}: IOrderApiResponse) {
+function renderOrderSuccessView({ total }: IOrderApiResponse): HTMLElement {
     return orderSuccessView.render({ total });
-}
-
-function getBuyProductButtonText({id, price}: IProduct): string {
-    if (price) {
-        return basketModel.hasItem(id)
-            ? 'Удалить из корзины'
-            : 'В корзину';
-    }
-    return 'Недоступно';
-}
-
-function canBuyProduct({price}: IProduct): boolean {
-    return !!price;
 }
