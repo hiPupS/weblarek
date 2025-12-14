@@ -1,7 +1,7 @@
-import {Component} from '../base/Component.ts';
-import {ensureElement} from '../../utils/utils.ts';
-import {IEvents} from '../base/Events.ts';
-import {eventNames} from '../../utils/constants.ts';
+import { Component } from '../base/Component.ts';
+import { ensureElement } from '../../utils/utils.ts';
+import { IEvents } from '../base/Events.ts';
+import { eventNames } from '../../utils/constants.ts';
 
 type TBasketViewData = {
     items: HTMLElement[];
@@ -33,11 +33,9 @@ export class BasketView extends Component<TBasketViewData> {
         this.listElem.replaceChildren(...items);
     }
 
+    //  ИСПРАВЛИЛ
     set total(total: number) {
-        if (total === 0) {
-            this.btnElem.disabled = true;
-        }
-
+        this.btnElem.disabled = total === 0;
         this.priceElem.textContent = `${total} синапсов`;
     }
 }
