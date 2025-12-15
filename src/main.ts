@@ -19,7 +19,7 @@ import { OrderFormView } from './components/views/Form/OrderFormView.ts';
 import { ContactsFormView } from './components/views/Form/ContactsFormView.ts';
 import { OrderSuccessView } from './components/views/OrderSuccessView.ts';
 
-// --- создаем экземпляры API и моделей ---
+//API и модели 
 const productApi = new ProductApi(new Api(API_URL));
 const eventEmitter = new EventEmitter();
 
@@ -27,7 +27,7 @@ const catalogModel = new Catalog(eventEmitter);
 const basketModel = new Basket(eventEmitter);
 const customerModel = new Customer(eventEmitter);
 
-// --- DOM ---
+//  DOM 
 const headerElem = ensureElement<HTMLElement>('.header');
 const galleryElem = ensureElement<HTMLElement>('.gallery');
 const modalElem = ensureElement<HTMLTemplateElement>('#modal-container');
@@ -40,25 +40,23 @@ const orderFormTemplate = ensureElement<HTMLTemplateElement>('#order');
 const contactsFormTemplate = ensureElement<HTMLTemplateElement>('#contacts');
 const successTemplate = ensureElement<HTMLTemplateElement>('#success');
 
-// --- создаем view ---
+//  View 
 const headerView = new HeaderView(headerElem, eventEmitter);
 const galleryView = new GalleryView(galleryElem);
-const modalView = new ModalView(modalElem); // теперь без isOpened на прототипе
+const modalView = new ModalView(modalElem);
 const basketView = new BasketView(cloneTemplate(basketTemplate), eventEmitter);
 const orderFormView = new OrderFormView(cloneTemplate<HTMLFormElement>(orderFormTemplate), eventEmitter);
 const contactsFormView = new ContactsFormView(cloneTemplate<HTMLFormElement>(contactsFormTemplate), eventEmitter);
 const orderSuccessView = new OrderSuccessView(cloneTemplate<HTMLElement>(successTemplate), eventEmitter);
 
-// --- локальное свойство для отслеживания состояния модалки ---
+// состояние модалки 
 let isModalOpened = false;
 
-// обертки для модалки, чтобы корректно отслеживать открытие/закрытие
 const openModal = (content: HTMLElement) => {
     isModalOpened = true;
     modalView.render({ content });
 };
 
-// --- события ---
 eventEmitter.on(eventNames.CATALOG_SET_ITEMS, () => {
     galleryView.render({
         items: catalogModel.getItems().map(renderCardCatalogView),
@@ -108,10 +106,7 @@ eventEmitter.on<Pick<IBuyer, 'address'>>(eventNames.ORDER_FORM_SET_ADDRESS, ({ a
     customerModel.setAddress(address);
 });
 
-[
-    eventNames.CUSTOMER_SET_PAYMENT,
-    eventNames.CUSTOMER_SET_ADDRESS,
-].forEach((eventName) => {
+[eventNames.CUSTOMER_SET_PAYMENT, eventNames.CUSTOMER_SET_ADDRESS].forEach((eventName) => {
     eventEmitter.on(eventName, () => renderOrderFormView());
 });
 
@@ -127,13 +122,11 @@ eventEmitter.on<Pick<IBuyer, 'phone'>>(eventNames.CONTACTS_FORM_SET_PHONE, ({ ph
     customerModel.setPhone(phone);
 });
 
-[
-    eventNames.CUSTOMER_SET_EMAIL,
-    eventNames.CUSTOMER_SET_PHONE,
-].forEach((eventName) => {
+[eventNames.CUSTOMER_SET_EMAIL, eventNames.CUSTOMER_SET_PHONE].forEach((eventName) => {
     eventEmitter.on(eventName, () => renderContactsFormView());
 });
 
+// отправка 
 eventEmitter.on(eventNames.CONTACTS_FORM_SUBMIT, async () => {
     try {
         const response = await productApi.order({
@@ -145,11 +138,19 @@ eventEmitter.on(eventNames.CONTACTS_FORM_SUBMIT, async () => {
         basketModel.clear();
         customerModel.clear();
 
+        //  обнуление 
+        renderHeaderView();
+
         openModal(renderOrderSuccessView(response));
     } catch (e) {
         if (isErrorApiResponse(e)) console.error(e.error);
         else console.error(e);
     }
+});
+
+//   ЗАКРЫВАЮЩИЙ ОБРАБОТИК
+eventEmitter.on(eventNames.ORDER_SUCCESS_CLICK_CLOSE, () => {
+    modalView.close();
 });
 
 // --- загрузка товаров ---
@@ -162,7 +163,7 @@ try {
 
 renderHeaderView();
 
-// --- рендер функции ---
+// --- render helpers ---
 function renderHeaderView(): HTMLElement {
     return headerView.render({
         count: basketModel.getTotalItems(),
